@@ -247,6 +247,30 @@
           "QueryInput"
         ],
         "slug": "gethistoryactivityperday"
+      },
+      {
+        "name": "addListener",
+        "signature": "(eventName: 'googleFitAllowed', listenerFunc: (info: GoogleFitPermissionData) => void) => Promise<PluginListenerHandle>",
+        "parameters": [
+          {
+            "name": "eventName",
+            "docs": "",
+            "type": "'googleFitAllowed'"
+          },
+          {
+            "name": "listenerFunc",
+            "docs": "",
+            "type": "(info: GoogleFitPermissionData) => void"
+          }
+        ],
+        "returns": "Promise<PluginListenerHandle>",
+        "tags": [],
+        "docs": "",
+        "complexTypes": [
+          "PluginListenerHandle",
+          "GoogleFitPermissionData"
+        ],
+        "slug": "addlistenergooglefitallowed"
       }
     ],
     "properties": []
@@ -1298,6 +1322,38 @@
           "docs": "",
           "complexTypes": [],
           "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "PluginListenerHandle",
+      "slug": "pluginlistenerhandle",
+      "docs": "",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "remove",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "() => Promise<void>"
+        }
+      ]
+    },
+    {
+      "name": "GoogleFitPermissionData",
+      "slug": "googlefitpermissiondata",
+      "docs": "",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "value",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [],
+          "type": "'success' | 'failure'"
         }
       ]
     }

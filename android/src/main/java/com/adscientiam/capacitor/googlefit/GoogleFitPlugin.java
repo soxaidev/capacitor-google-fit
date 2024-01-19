@@ -9,6 +9,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.util.Log;
+import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -87,10 +88,6 @@ public class GoogleFitPlugin extends Plugin {
         return GoogleSignIn.getLastSignedInAccount(getActivity());
     }
 
-    private void requestPermissions() {
-        GoogleSignIn.requestPermissions(getActivity(), GOOGLE_FIT_PERMISSIONS_REQUEST_CODE, getAccount(), getFitnessSignInOptions());
-    }
-
     @PluginMethod
     public void disableFit(PluginCall call) {
         Fitness
@@ -125,6 +122,7 @@ public class GoogleFitPlugin extends Plugin {
     }
 
     private ActivityResultLauncher<Intent> activityResultLauncher;
+    private ActivityResultLauncher<Intent> activityResultCallback;
 
     @Override
     public void load() {
@@ -138,12 +136,45 @@ public class GoogleFitPlugin extends Plugin {
 
                         GoogleSignInAccount account = getAccount();
                         if (account != null) {
-                            if (!GoogleSignIn.hasPermissions(account, getFitnessSignInOptions())) {
+                            if (GoogleSignIn.hasPermissions(account, getFitnessSignInOptions())) {
+                                JSObject ret = new JSObject();
+                                ret.put("value", "success");
+                                notifyListeners("googleFitAllowed", ret);
+                            } else {
                                 this.requestPermissions();
                             }
                         }
                     }
                 );
+
+        activityResultCallback =
+            getActivity()
+                .registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        JSObject ret = new JSObject();
+                        if (result.getResultCode() == Activity.RESULT_OK) {
+                            ret.put("value", "success");
+                        } else {
+                            ret.put("value", "failure");
+                        }
+                        notifyListeners("googleFitAllowed", ret);
+                    }
+                );
+    }
+
+    private void requestPermissions() {
+        // GoogleSignInOptions を構築
+        GoogleSignInOptions signInOptions = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .addExtension(getFitnessSignInOptions())
+            .build();
+
+        // GoogleSignInClient を取得
+        GoogleSignInClient signInClient = GoogleSignIn.getClient(getActivity(), signInOptions);
+
+        // サインインインテントを取得して起動
+        Intent signInIntent = signInClient.getSignInIntent();
+        activityResultCallback.launch(signInIntent);
     }
 
     @PluginMethod
@@ -203,19 +234,6 @@ public class GoogleFitPlugin extends Plugin {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
             context.startActivity(intent);
-            // PackageManager pm = context.getPackageManager();
-            // List<PackageInfo> pckInfoList = pm.getInstalledPackages(PackageManager.GET_META_DATA);
-
-            // for (PackageInfo pckInfo : pckInfoList) {
-            //     if (pm.getLaunchIntentForPackage(pckInfo.packageName) != null) {
-            //         String opackageName = pckInfo.packageName;
-            //         String className = pm.getLaunchIntentForPackage(pckInfo.packageName).getComponent().getClassName() + "";
-            //         Log.i("起動可能なパッケージ名", opackageName);
-            //         Log.i("起動可能なクラス名", className);
-            //     } else {
-            //         Log.i("----------起動不可能なパッケージ名", pckInfo.packageName);
-            //     }
-            // }
         }
     }
 

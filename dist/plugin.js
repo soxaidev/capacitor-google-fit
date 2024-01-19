@@ -15,6 +15,9 @@ var capacitorGoogleFit = (function (exports, core) {
         async connectToGoogleFit() {
             throw new Error('Method not implemented.');
         }
+        addListener(eventName, listenerFunc) {
+            throw new Error(`Method not implemented.${eventName}${listenerFunc}`);
+        }
         async disableFit() {
             throw new Error('Method not implemented.');
         }

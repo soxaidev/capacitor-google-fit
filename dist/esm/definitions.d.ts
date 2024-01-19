@@ -1,3 +1,4 @@
+import type { PluginListenerHandle } from '@capacitor/core';
 export interface GoogleFitPlugin {
     /**
      * Connect to Google Fit
@@ -73,9 +74,13 @@ export interface GoogleFitPlugin {
      * @resolve AccountData
      */
     getHistoryActivityPerDay(call: QueryInput): Promise<ActivityContainer>;
+    addListener(eventName: 'googleFitAllowed', listenerFunc: (info: GoogleFitPermissionData) => void): Promise<PluginListenerHandle>;
 }
 export interface PermissionData {
     allowed: boolean;
+}
+export interface GoogleFitPermissionData {
+    value: 'success' | 'failure';
 }
 export interface QueryInput {
     startTime: Date;

@@ -1,4 +1,4 @@
-import { WebPlugin } from '@capacitor/core';
+import { WebPlugin, } from '@capacitor/core';
 export class GoogleFitWeb extends WebPlugin {
     constructor() {
         super({
@@ -8,6 +8,9 @@ export class GoogleFitWeb extends WebPlugin {
     }
     async connectToGoogleFit() {
         throw new Error('Method not implemented.');
+    }
+    addListener(eventName, listenerFunc) {
+        throw new Error(`Method not implemented.${eventName}${listenerFunc}`);
     }
     async disableFit() {
         throw new Error('Method not implemented.');

@@ -1,4 +1,8 @@
-import { WebPlugin } from '@capacitor/core';
+import {
+  ListenerCallback,
+  PluginListenerHandle,
+  WebPlugin,
+} from '@capacitor/core';
 
 import type { AllowedResult, GoogleFitPlugin } from './definitions';
 
@@ -12,6 +16,12 @@ export class GoogleFitWeb extends WebPlugin implements GoogleFitPlugin {
 
   async connectToGoogleFit(): Promise<void> {
     throw new Error('Method not implemented.');
+  }
+  addListener(
+    eventName: 'googleFitAllowed',
+    listenerFunc?: ListenerCallback,
+  ): Promise<PluginListenerHandle> & PluginListenerHandle {
+    throw new Error(`Method not implemented.${eventName}${listenerFunc}`);
   }
   async disableFit(): Promise<void> {
     throw new Error('Method not implemented.');

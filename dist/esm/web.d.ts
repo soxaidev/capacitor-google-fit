@@ -1,8 +1,9 @@
-import { WebPlugin } from '@capacitor/core';
+import { ListenerCallback, PluginListenerHandle, WebPlugin } from '@capacitor/core';
 import type { AllowedResult, GoogleFitPlugin } from './definitions';
 export declare class GoogleFitWeb extends WebPlugin implements GoogleFitPlugin {
     constructor();
     connectToGoogleFit(): Promise<void>;
+    addListener(eventName: 'googleFitAllowed', listenerFunc?: ListenerCallback): Promise<PluginListenerHandle> & PluginListenerHandle;
     disableFit(): Promise<void>;
     logoutGoogleFit(): Promise<void>;
     openGoogleFit(): Promise<void>;
