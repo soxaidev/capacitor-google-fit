@@ -143,6 +143,10 @@ public class GoogleFitPlugin extends Plugin {
                             } else {
                                 this.requestPermissions();
                             }
+                        } else {
+                            JSObject ret = new JSObject();
+                            ret.put("value", "failure");
+                            notifyListeners("googleFitAllowed", ret);
                         }
                     }
                 );
