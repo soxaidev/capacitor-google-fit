@@ -34,11 +34,12 @@ import com.google.android.gms.fitness.data.DataSource;
 import com.google.android.gms.fitness.data.DataType;
 import com.google.android.gms.fitness.data.Field;
 import com.google.android.gms.fitness.data.Session;
+import com.google.android.gms.fitness.data.SleepStages;
 import com.google.android.gms.fitness.request.DataDeleteRequest;
-//import com.google.android.gms.fitness.data.SleepStages;
 import com.google.android.gms.fitness.request.DataReadRequest;
 import com.google.android.gms.fitness.request.SessionInsertRequest;
 import com.google.android.gms.fitness.result.DataReadResponse;
+import com.google.android.gms.fitness.result.SessionReadResponse;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
@@ -78,8 +79,8 @@ public class GoogleFitPlugin extends Plugin {
             // .addDataType(DataType.TYPE_WEIGHT, FitnessOptions.ACCESS_READ) // 体重
             // .addDataType(DataType.TYPE_WEIGHT, FitnessOptions.ACCESS_WRITE) // 体重
             // .addDataType(DataType.TYPE_SLEEP_SEGMENT, FitnessOptions.ACCESS_READ) // 睡眠
-            // .addDataType(DataType.TYPE_SLEEP_SEGMENT, FitnessOptions.ACCESS_WRITE) // 睡眠
-            // .addDataType(DataType.TYPE_STEP_COUNT_DELTA, FitnessOptions.ACCESS_READ) // 歩数
+            .addDataType(DataType.TYPE_SLEEP_SEGMENT, FitnessOptions.ACCESS_WRITE) // 睡眠
+            .addDataType(DataType.TYPE_STEP_COUNT_DELTA, FitnessOptions.ACCESS_READ) // 歩数
             .addDataType(DataType.TYPE_STEP_COUNT_DELTA, FitnessOptions.ACCESS_WRITE) // 歩数(書き込み)
             .build();
     }
@@ -556,61 +557,45 @@ public class GoogleFitPlugin extends Plugin {
 
         long startTime = dateToTimestamp(call.getString("startTime"));
         long endTime = dateToTimestamp(call.getString("endTime"));
+
         String id = call.getString("id");
-        int sleepStage = call.getInt("sleepStage");
 
-        // int sleep;
+        int sleep = SleepStages.AWAKE;
 
-        // switch (sleepStage) {
-        //     case -1:
-        //         sleep = SleepStages.AWAKE;
-        //         break;
-        //     case 0:
-        //         sleep = SleepStages.SLEEP_REM;
-        //         break;
-        //     case 1:
-        //     case 2:
-        //         sleep = SleepStages.SLEEP_LIGHT;
-        //         break;
-        //     case 3:
-        //         sleep = SleepStages.SLEEP_DEEP;
-        //         break;
-        //     default:
-        //         sleep = SleepStages.OUT_OF_BED;
-        //         break;
-        // }
+        DataSource sleepDataSource = new DataSource.Builder().setDataType(DataType.TYPE_SLEEP_SEGMENT).setType(DataSource.TYPE_RAW).build();
 
-        //        .setAppPackageName(getString(R.string.package_name))
-        // DataSource sleepDataSource = new DataSource.Builder().setDataType(DataType.TYPE_SLEEP_SEGMENT).setType(DataSource.TYPE_RAW).build();
+        DataPoint singleDataPoint = DataPoint
+            .builder(sleepDataSource)
+            .setTimeInterval(startTime, endTime, TimeUnit.MILLISECONDS)
+            .setField(Field.FIELD_SLEEP_SEGMENT_TYPE, sleep)
+            .build();
+
+        DataSet dataSet = DataSet.builder(sleepDataSource).add(singleDataPoint).build();
 
         Session session = new Session.Builder()
-            .setName("Sleep session")
-            .setDescription("Sleep data from SOXAI")
             .setIdentifier(id)
-            .setActivity(FitnessActivities.SLEEP)
-            .setStartTime(startTime, TimeUnit.MILLISECONDS)
-            .setEndTime(endTime, TimeUnit.MILLISECONDS)
+            .setStartTime(startTime, TimeUnit.MILLISECONDS) // From first segment
+            .setEndTime(endTime, TimeUnit.MILLISECONDS) // From last segment
             .setActivity(FitnessActivities.SLEEP)
             .build();
 
-        // DataPoint sleepStageDataPoint = DataPoint
-        //     .builder(sleepDataSource)
-        //     .setTimeInterval(startTime, endTime, TimeUnit.MILLISECONDS)
-        //     .setField(Field.FIELD_SLEEP_SEGMENT_TYPE, sleep)
-        //     .build();
-
-        // DataSet sleepStageDataSet = DataSet.builder(sleepDataSource).add(sleepStageDataPoint).build();
-
-        SessionInsertRequest request = new SessionInsertRequest.Builder().setSession(session).build();
-
-        JSObject ret = new JSObject();
-        ret.put("value", "success");
+        SessionInsertRequest request = new SessionInsertRequest.Builder().setSession(session).addDataSet(dataSet).build();
 
         Fitness
             .getSessionsClient(getActivity(), account)
             .insertSession(request)
-            .addOnSuccessListener(session1 -> call.resolve(ret))
-            .addOnFailureListener(e -> call.reject(e.getMessage()));
+            .addOnSuccessListener(
+                unused -> {
+                    JSObject ret = new JSObject();
+                    ret.put("value", "success");
+                    call.resolve(ret);
+                }
+            )
+            .addOnFailureListener(
+                e -> {
+                    call.reject(e.getMessage());
+                }
+            );
 
         return null;
     }
@@ -646,25 +631,31 @@ public class GoogleFitPlugin extends Plugin {
         long startTime = dateToTimestamp(call.getString("startTime"));
         long endTime = dateToTimestamp(call.getString("endTime"));
 
-        // 睡眠セッションの書き込み
-        // 睡眠セッションの書き込み
-        SessionInsertRequest.Builder insertRequestBuilder = new SessionInsertRequest.Builder();
+        int sleep = SleepStages.AWAKE;
 
-        // 睡眠セッションの設定
-        Session session = new Session.Builder()
-            .setName("Sleep Session") // セッションの名前
-            .setStartTime(startTime, TimeUnit.MILLISECONDS) // 開始時間
-            .setEndTime(endTime, TimeUnit.MILLISECONDS) // 終了時間
-            .setActivity(FitnessActivities.SLEEP) // アクティビティを睡眠に設定
+        DataSource sleepDataSource = new DataSource.Builder().setDataType(DataType.TYPE_SLEEP_SEGMENT).setType(DataSource.TYPE_RAW).build();
+
+        DataPoint sleepStageDataPoint = DataPoint
+            .builder(sleepDataSource)
+            .setTimeInterval(startTime, endTime, TimeUnit.MILLISECONDS)
+            .setField(Field.FIELD_SLEEP_SEGMENT_TYPE, sleep)
             .build();
 
-        // 睡眠セッションを書き込む
-        Task<Void> insertSessionTask = Fitness.getSessionsClient(getActivity(), account).insertSession(insertRequestBuilder.build());
+        DataSet sleepStageDataSet = DataSet.builder(sleepDataSource).add(sleepStageDataPoint).build();
 
-        insertSessionTask.addOnSuccessListener(
+        // sleepStageDataSetを書き込む
+        Task<Void> insertSleepStageTask = Fitness.getHistoryClient(getActivity(), account).insertData(sleepStageDataSet);
+
+        insertSleepStageTask.addOnSuccessListener(
             new OnSuccessListener<Void>() {
                 @Override
                 public void onSuccess(Void aVoid) {
+                    // アラートダイアログを表示(日付を含めて)
+                    AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+                    builder.setMessage("睡眠セッションの書き込みに成功しました。" + startTime);
+                    builder.setPositiveButton("OK", null);
+                    builder.show();
+
                     JSObject ret = new JSObject();
                     ret.put("value", "success");
                     // 睡眠セッションの書き込みに成功した場合の処理
@@ -673,7 +664,7 @@ public class GoogleFitPlugin extends Plugin {
             }
         );
 
-        insertSessionTask.addOnFailureListener(
+        insertSleepStageTask.addOnFailureListener(
             new OnFailureListener() {
                 @Override
                 public void onFailure(@NonNull Exception e) {
@@ -683,6 +674,42 @@ public class GoogleFitPlugin extends Plugin {
                 }
             }
         );
+
+        // SessionInsertRequest.Builder insertRequestBuilder = new SessionInsertRequest.Builder();
+
+        // // 睡眠セッションの設定
+        // Session session = new Session.Builder()
+        //     .setName("Sleep Session") // セッションの名前
+        //     .setStartTime(startTime, TimeUnit.MILLISECONDS) // 開始時間
+        //     .setEndTime(endTime, TimeUnit.MILLISECONDS) // 終了時間
+        //     .setActivity(FitnessActivities.SLEEP) // アクティビティを睡眠に設定
+        //     .build();
+
+        // // 睡眠セッションを書き込む
+        // Task<Void> insertSessionTask = Fitness.getSessionsClient(getActivity(), account).insertSession(insertRequestBuilder.build());
+
+        // insertSessionTask
+        //     .addOnSuccessListener(
+        //         new OnSuccessListener<Void>() {
+        //             @Override
+        //             public void onSuccess(Void aVoid) {
+        //                 JSObject ret = new JSObject();
+        //                 ret.put("value", "success");
+        //                 // 睡眠セッションの書き込みに成功した場合の処理
+        //                 call.resolve(ret);
+        //             }
+        //         }
+        //     )
+        //     .addOnFailureListener(
+        //         new OnFailureListener() {
+        //             @Override
+        //             public void onFailure(@NonNull Exception e) {
+        //                 // 睡眠セッションの書き込みに失敗した場合の処理
+        //                 call.reject(e.getMessage());
+        //                 // call.reject("Failed to add sleep session: " + e.getMessage());
+        //             }
+        //         }
+        //     );
 
         return null;
     }
