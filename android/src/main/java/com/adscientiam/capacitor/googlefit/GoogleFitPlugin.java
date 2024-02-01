@@ -3,6 +3,7 @@ package com.adscientiam.capacitor.googlefit;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
@@ -13,6 +14,7 @@ import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.NativePlugin;
 import com.getcapacitor.Plugin;
@@ -38,6 +40,7 @@ import com.google.android.gms.fitness.data.SleepStages;
 import com.google.android.gms.fitness.request.DataDeleteRequest;
 import com.google.android.gms.fitness.request.DataReadRequest;
 import com.google.android.gms.fitness.request.SessionInsertRequest;
+import com.google.android.gms.fitness.request.SessionReadRequest;
 import com.google.android.gms.fitness.result.DataReadResponse;
 import com.google.android.gms.fitness.result.SessionReadResponse;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -46,8 +49,10 @@ import com.google.android.gms.tasks.Task;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeUnit;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -78,7 +83,7 @@ public class GoogleFitPlugin extends Plugin {
             // .addDataType(DataType.TYPE_HEIGHT, FitnessOptions.ACCESS_READ) // 身長
             // .addDataType(DataType.TYPE_WEIGHT, FitnessOptions.ACCESS_READ) // 体重
             // .addDataType(DataType.TYPE_WEIGHT, FitnessOptions.ACCESS_WRITE) // 体重
-            // .addDataType(DataType.TYPE_SLEEP_SEGMENT, FitnessOptions.ACCESS_READ) // 睡眠
+            .addDataType(DataType.TYPE_SLEEP_SEGMENT, FitnessOptions.ACCESS_READ) // 睡眠
             .addDataType(DataType.TYPE_SLEEP_SEGMENT, FitnessOptions.ACCESS_WRITE) // 睡眠
             .addDataType(DataType.TYPE_STEP_COUNT_DELTA, FitnessOptions.ACCESS_READ) // 歩数
             .addDataType(DataType.TYPE_STEP_COUNT_DELTA, FitnessOptions.ACCESS_WRITE) // 歩数(書き込み)
@@ -486,7 +491,6 @@ public class GoogleFitPlugin extends Plugin {
 
     @PluginMethod
     public Task<DataReadResponse> readSleepData(final PluginCall call) throws ParseException {
-        // 未実装
         final GoogleSignInAccount account = getAccount();
 
         if (account == null) {
@@ -497,53 +501,97 @@ public class GoogleFitPlugin extends Plugin {
         long startTime = dateToTimestamp(call.getString("startTime"));
         long endTime = dateToTimestamp(call.getString("endTime"));
 
-        JSObject result = new JSObject();
-        result.put("sleeps", "OK");
-        call.resolve(result);
+        SessionReadRequest request = new SessionReadRequest.Builder()
+            .readSessionsFromAllApps()
+            .includeSleepSessions()
+            .read(DataType.TYPE_SLEEP_SEGMENT)
+            .setTimeInterval(startTime, endTime, TimeUnit.MILLISECONDS)
+            .build();
 
-        // DataReadRequest readRequest = new DataReadRequest.Builder()
-        //     .read(DataType.TYPE_SLEEP_SEGMENT)
-        //     .setTimeRange(startTime, endTime, TimeUnit.MILLISECONDS)
-        //     .build();
+        Fitness
+            .getSessionsClient(getActivity(), account)
+            .readSession(request)
+            .addOnSuccessListener(
+                response -> {
+                    JSObject ret = new JSObject();
+                    JSONArray sessions = new JSONArray();
 
-        // Fitness
-        //     .getHistoryClient(getActivity(), account)
-        //     .readData(readRequest)
-        //     .addOnSuccessListener(
-        //         new OnSuccessListener<DataReadResponse>() {
-        //             @Override
-        //             public void onSuccess(DataReadResponse dataReadResponse) {
-        //                 List<DataSet> dataSets = dataReadResponse.getDataSets();
-        //                 JSONArray sleeps = new JSONArray();
-        //                 for (DataSet dataSet : dataSets) {
-        //                     for (DataPoint dp : dataSet.getDataPoints()) {
-        //                         JSONObject summary = new JSONObject();
-        //                         try {
-        //                             summary.put("start", timestampToDate(dp.getStartTime(TimeUnit.MILLISECONDS)));
-        //                             summary.put("end", timestampToDate(dp.getEndTime(TimeUnit.MILLISECONDS)));
-        //                             summary.put("sleep", dp.getValue(Field.FIELD_SLEEP_SEGMENT_TYPE));
-        //                         } catch (JSONException e) {
-        //                             call.reject(e.getMessage());
-        //                             return;
-        //                         }
-        //                         sleeps.put(summary);
-        //                     }
-        //                 }
-        //                 JSObject result = new JSObject();
-        //                 result.put("sleeps", sleeps);
-        //                 call.resolve(result);
-        //             }
-        //         }
-        //     )
-        //     .addOnFailureListener(
-        //         new OnFailureListener() {
-        //             @Override
-        //             public void onFailure(@NonNull Exception e) {
-        //                 call.reject(e.getMessage());
-        //             }
-        //         }
-        // );
+                    for (Session session : response.getSessions()) {
+                        JSONObject sessionObj = new JSONObject();
+
+                        long sessionStart = session.getStartTime(TimeUnit.MILLISECONDS);
+                        long sessionEnd = session.getEndTime(TimeUnit.MILLISECONDS);
+                        String sessionSleepStageVal = session.getActivity();
+                        try {
+                            sessionObj.put("start", timestampToDate(sessionStart));
+                            sessionObj.put("end", timestampToDate(sessionEnd));
+                            sessionObj.put("stage", sessionSleepStageVal);
+                            sessionObj.put("detail", new JSONArray());
+                        } catch (JSONException e) {
+                            call.reject(e.getMessage());
+                            return;
+                        }
+
+                        List<DataSet> dataSets = response.getDataSet(session);
+                        for (DataSet dataSet : dataSets) {
+                            for (DataPoint point : dataSet.getDataPoints()) {
+                                // https://developers.google.com/fit/scenarios/read-sleep-data?hl=ja
+                                int sleepStageVal = point.getValue(Field.FIELD_SLEEP_SEGMENT_TYPE).asInt();
+
+                                long segmentStart = point.getStartTime(TimeUnit.MILLISECONDS);
+                                long segmentEnd = point.getEndTime(TimeUnit.MILLISECONDS);
+
+                                JSONObject dataSetObj = new JSONObject();
+                                try {
+                                    dataSetObj.put("start", timestampToDate(segmentStart));
+                                    dataSetObj.put("end", timestampToDate(segmentEnd));
+                                    dataSetObj.put("stage", sleepStageVal);
+                                    sessionObj.put("detail", dataSetObj);
+                                } catch (JSONException e) {
+                                    call.reject(e.getMessage());
+                                    return;
+                                }
+                            }
+                        }
+                        sessions.put(sessionObj);
+                    }
+
+                    ret.put("value", sessions);
+                    call.resolve(ret);
+                }
+            )
+            .addOnFailureListener(
+                e -> {
+                    call.reject(e.getMessage());
+                }
+            );
+
         return null;
+    }
+
+    public static class SleepType {
+
+        public long start;
+        public long end;
+        public int stage;
+
+        // Constructor updated to accept long for start and end
+        public SleepType(long start, long end, int stage) {
+            this.start = start;
+            this.end = end;
+            this.stage = stage;
+        }
+    }
+
+    private SleepType convertJsonObjectToSleepType(JSONObject jsonObject) throws ParseException {
+        try {
+            long startTime = dateToTimestamp(jsonObject.getString("start"));
+            long endTime = dateToTimestamp(jsonObject.getString("end"));
+            int stage = jsonObject.getInt("stage");
+            return new SleepType(startTime, endTime, stage); // Corrected the class name
+        } catch (JSONException e) {
+            throw new ParseException(e.getMessage(), 0);
+        }
     }
 
     @PluginMethod
@@ -557,20 +605,69 @@ public class GoogleFitPlugin extends Plugin {
 
         long startTime = dateToTimestamp(call.getString("startTime"));
         long endTime = dateToTimestamp(call.getString("endTime"));
-
         String id = call.getString("id");
+        JSArray sleepSegmentJsonList = call.getArray("details");
 
-        int sleep = SleepStages.AWAKE;
+        List<SleepType> sleepSegmentList = new ArrayList<>();
+        for (int i = 0; i < sleepSegmentJsonList.length(); i++) {
+            try {
+                JSONObject jsonObject = sleepSegmentJsonList.getJSONObject(i);
+                sleepSegmentList.add(convertJsonObjectToSleepType(jsonObject));
+            } catch (JSONException e) {
+                call.reject(e.getMessage());
+                return null;
+            }
+        }
+
+        List<DataPoint> dataPoints = new ArrayList<>();
+
+        sleepSegmentList.forEach(
+            sleepSegment -> {
+                DataSource sleepDataSource = new DataSource.Builder()
+                    .setDataType(DataType.TYPE_SLEEP_SEGMENT)
+                    .setType(DataSource.TYPE_RAW)
+                    .build();
+
+                int sleep = SleepStages.SLEEP;
+                if (sleepSegment.stage == -1) {
+                    sleep = SleepStages.AWAKE;
+                } else if (sleepSegment.stage == 0) {
+                    sleep = SleepStages.SLEEP_REM;
+                } else if (sleepSegment.stage == 1 || sleepSegment.stage == 2) {
+                    sleep = SleepStages.SLEEP_LIGHT;
+                } else if (sleepSegment.stage == 3) {
+                    sleep = SleepStages.SLEEP_DEEP;
+                } else {
+                    sleep = SleepStages.OUT_OF_BED;
+                }
+
+                DataPoint singleDataPoint = DataPoint
+                    .builder(sleepDataSource)
+                    .setTimeInterval(sleepSegment.start, sleepSegment.end, TimeUnit.MILLISECONDS)
+                    .setField(Field.FIELD_SLEEP_SEGMENT_TYPE, sleep)
+                    .build();
+
+                dataPoints.add(singleDataPoint);
+            }
+        );
+
+        // int sleep = SleepStages.SLEEP;
+
+        new AlertDialog.Builder(getActivity())
+            .setTitle("データの書き込み")
+            .setMessage("データを書き込みますか？")
+            .setPositiveButton("OK", null)
+            .show();
 
         DataSource sleepDataSource = new DataSource.Builder().setDataType(DataType.TYPE_SLEEP_SEGMENT).setType(DataSource.TYPE_RAW).build();
 
-        DataPoint singleDataPoint = DataPoint
-            .builder(sleepDataSource)
-            .setTimeInterval(startTime, endTime, TimeUnit.MILLISECONDS)
-            .setField(Field.FIELD_SLEEP_SEGMENT_TYPE, sleep)
-            .build();
+        // DataPoint singleDataPoint = DataPoint
+        //     .builder(sleepDataSource)
+        //     .setTimeInterval(startTime, endTime, TimeUnit.MILLISECONDS)
+        //     .setField(Field.FIELD_SLEEP_SEGMENT_TYPE, sleep)
+        //     .build();
 
-        DataSet dataSet = DataSet.builder(sleepDataSource).add(singleDataPoint).build();
+        DataSet dataSet = DataSet.builder(sleepDataSource).addAll(dataPoints).build();
 
         Session session = new Session.Builder()
             .setIdentifier(id)
@@ -617,101 +714,6 @@ public class GoogleFitPlugin extends Plugin {
         } catch (ParseException e) {
             return -1;
         }
-    }
-
-    @PluginMethod
-    public Task<DataReadResponse> settingSleepSegment(final PluginCall call) throws ParseException {
-        final GoogleSignInAccount account = getAccount();
-
-        if (account == null) {
-            call.reject("No access");
-            return null;
-        }
-
-        long startTime = dateToTimestamp(call.getString("startTime"));
-        long endTime = dateToTimestamp(call.getString("endTime"));
-
-        int sleep = SleepStages.AWAKE;
-
-        DataSource sleepDataSource = new DataSource.Builder().setDataType(DataType.TYPE_SLEEP_SEGMENT).setType(DataSource.TYPE_RAW).build();
-
-        DataPoint sleepStageDataPoint = DataPoint
-            .builder(sleepDataSource)
-            .setTimeInterval(startTime, endTime, TimeUnit.MILLISECONDS)
-            .setField(Field.FIELD_SLEEP_SEGMENT_TYPE, sleep)
-            .build();
-
-        DataSet sleepStageDataSet = DataSet.builder(sleepDataSource).add(sleepStageDataPoint).build();
-
-        // sleepStageDataSetを書き込む
-        Task<Void> insertSleepStageTask = Fitness.getHistoryClient(getActivity(), account).insertData(sleepStageDataSet);
-
-        insertSleepStageTask.addOnSuccessListener(
-            new OnSuccessListener<Void>() {
-                @Override
-                public void onSuccess(Void aVoid) {
-                    // アラートダイアログを表示(日付を含めて)
-                    AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-                    builder.setMessage("睡眠セッションの書き込みに成功しました。" + startTime);
-                    builder.setPositiveButton("OK", null);
-                    builder.show();
-
-                    JSObject ret = new JSObject();
-                    ret.put("value", "success");
-                    // 睡眠セッションの書き込みに成功した場合の処理
-                    call.resolve(ret);
-                }
-            }
-        );
-
-        insertSleepStageTask.addOnFailureListener(
-            new OnFailureListener() {
-                @Override
-                public void onFailure(@NonNull Exception e) {
-                    // 睡眠セッションの書き込みに失敗した場合の処理
-                    call.reject(e.getMessage());
-                    // call.reject("Failed to add sleep session: " + e.getMessage());
-                }
-            }
-        );
-
-        // SessionInsertRequest.Builder insertRequestBuilder = new SessionInsertRequest.Builder();
-
-        // // 睡眠セッションの設定
-        // Session session = new Session.Builder()
-        //     .setName("Sleep Session") // セッションの名前
-        //     .setStartTime(startTime, TimeUnit.MILLISECONDS) // 開始時間
-        //     .setEndTime(endTime, TimeUnit.MILLISECONDS) // 終了時間
-        //     .setActivity(FitnessActivities.SLEEP) // アクティビティを睡眠に設定
-        //     .build();
-
-        // // 睡眠セッションを書き込む
-        // Task<Void> insertSessionTask = Fitness.getSessionsClient(getActivity(), account).insertSession(insertRequestBuilder.build());
-
-        // insertSessionTask
-        //     .addOnSuccessListener(
-        //         new OnSuccessListener<Void>() {
-        //             @Override
-        //             public void onSuccess(Void aVoid) {
-        //                 JSObject ret = new JSObject();
-        //                 ret.put("value", "success");
-        //                 // 睡眠セッションの書き込みに成功した場合の処理
-        //                 call.resolve(ret);
-        //             }
-        //         }
-        //     )
-        //     .addOnFailureListener(
-        //         new OnFailureListener() {
-        //             @Override
-        //             public void onFailure(@NonNull Exception e) {
-        //                 // 睡眠セッションの書き込みに失敗した場合の処理
-        //                 call.reject(e.getMessage());
-        //                 // call.reject("Failed to add sleep session: " + e.getMessage());
-        //             }
-        //         }
-        //     );
-
-        return null;
     }
 
     @PluginMethod

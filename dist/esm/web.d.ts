@@ -12,9 +12,6 @@ export declare class GoogleFitWeb extends WebPlugin implements GoogleFitPlugin {
     setWriteSleepData(): Promise<{
         value: string;
     }>;
-    settingSleepSegment(): Promise<{
-        value: string;
-    }>;
     writeStepCountData(): Promise<{
         value: string;
     }>;

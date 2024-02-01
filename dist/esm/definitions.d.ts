@@ -47,12 +47,6 @@ export interface GoogleFitPlugin {
         value: string;
     }>;
     /**
-     * settingSleepSegment
-     */
-    settingSleepSegment(call: QueryInput): Promise<{
-        value: string;
-    }>;
-    /**
      * writeStepCountData
      */
     writeStepCountData(call: SetStepCountData): Promise<{
@@ -61,7 +55,7 @@ export interface GoogleFitPlugin {
     /**
      * readSleepData
      */
-    readSleepData(call: QueryInput): Promise<any>;
+    readSleepData(call: QueryInput): Promise<SleepData>;
     /**
      * Get history activity
      * @returns {Promise}
@@ -90,7 +84,11 @@ export interface SetSleepData {
     startTime: Date;
     endTime: Date;
     id: string;
-    sleepStage: number;
+    details: {
+        start: Date;
+        end: Date;
+        stage: number | null;
+    }[];
 }
 export interface SetStepCountData {
     startTime: Date;
@@ -114,6 +112,18 @@ export interface HistoryData {
     /**meters per second */
     speed: string;
     calories: string;
+}
+export interface SleepData {
+    value: {
+        start: Date;
+        end: Date;
+        stage: string;
+        detail: {
+            start: Date;
+            end: Date;
+            stage: number;
+        }[];
+    }[];
 }
 export interface HistoryActivityData {
     start: string;

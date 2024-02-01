@@ -141,24 +141,6 @@
         "slug": "setwritesleepdata"
       },
       {
-        "name": "settingSleepSegment",
-        "signature": "(call: QueryInput) => Promise<{ value: string; }>",
-        "parameters": [
-          {
-            "name": "call",
-            "docs": "",
-            "type": "QueryInput"
-          }
-        ],
-        "returns": "Promise<{ value: string; }>",
-        "tags": [],
-        "docs": "settingSleepSegment",
-        "complexTypes": [
-          "QueryInput"
-        ],
-        "slug": "settingsleepsegment"
-      },
-      {
         "name": "writeStepCountData",
         "signature": "(call: SetStepCountData) => Promise<{ value: string; }>",
         "parameters": [
@@ -178,7 +160,7 @@
       },
       {
         "name": "readSleepData",
-        "signature": "(call: QueryInput) => Promise<any>",
+        "signature": "(call: QueryInput) => Promise<SleepData>",
         "parameters": [
           {
             "name": "call",
@@ -186,10 +168,11 @@
             "type": "QueryInput"
           }
         ],
-        "returns": "Promise<any>",
+        "returns": "Promise<SleepData>",
         "tags": [],
         "docs": "readSleepData",
         "complexTypes": [
+          "SleepData",
           "QueryInput"
         ],
         "slug": "readsleepdata"
@@ -1186,11 +1169,13 @@
           "type": "string"
         },
         {
-          "name": "sleepStage",
+          "name": "details",
           "tags": [],
           "docs": "",
-          "complexTypes": [],
-          "type": "number"
+          "complexTypes": [
+            "Date"
+          ],
+          "type": "{ start: Date; end: Date; stage: number | null; }[]"
         }
       ]
     },
@@ -1225,6 +1210,24 @@
           "docs": "",
           "complexTypes": [],
           "type": "number"
+        }
+      ]
+    },
+    {
+      "name": "SleepData",
+      "slug": "sleepdata",
+      "docs": "",
+      "tags": [],
+      "methods": [],
+      "properties": [
+        {
+          "name": "value",
+          "tags": [],
+          "docs": "",
+          "complexTypes": [
+            "Date"
+          ],
+          "type": "{ start: Date; end: Date; stage: string; detail: { start: Date; end: Date; stage: number; }[]; }[]"
         }
       ]
     },

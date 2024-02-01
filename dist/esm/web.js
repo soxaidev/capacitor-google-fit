@@ -30,9 +30,6 @@ export class GoogleFitWeb extends WebPlugin {
     async setWriteSleepData() {
         throw new Error('Method not implemented.');
     }
-    async settingSleepSegment() {
-        throw new Error('Method not implemented.');
-    }
     async writeStepCountData() {
         throw new Error('Method not implemented.');
     }

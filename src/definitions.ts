@@ -53,11 +53,6 @@ export interface GoogleFitPlugin {
   setWriteSleepData(call: SetSleepData): Promise<{ value: string }>;
 
   /**
-   * settingSleepSegment
-   */
-  settingSleepSegment(call: QueryInput): Promise<{ value: string }>;
-
-  /**
    * writeStepCountData
    */
   writeStepCountData(call: SetStepCountData): Promise<{ value: string }>;
@@ -65,7 +60,7 @@ export interface GoogleFitPlugin {
   /**
    * readSleepData
    */
-  readSleepData(call: QueryInput): Promise<any>;
+  readSleepData(call: QueryInput): Promise<SleepData>;
 
   /**
    * Get history activity
@@ -104,7 +99,11 @@ export interface SetSleepData {
   startTime: Date;
   endTime: Date;
   id: string;
-  sleepStage: number;
+  details: {
+    start: Date;
+    end: Date;
+    stage: number | null;
+  }[];
 }
 
 export interface SetStepCountData {
@@ -135,6 +134,19 @@ export interface HistoryData {
   This data type captures the total calories (in kilocalories) burned by the user, including calories burned at rest (BMR or Basalrate)!
   */
   calories: string;
+}
+
+export interface SleepData {
+  value: {
+    start: Date;
+    end: Date;
+    stage: string;
+    detail: {
+      start: Date;
+      end: Date;
+      stage: number;
+    }[];
+  }[];
 }
 
 export interface HistoryActivityData {
