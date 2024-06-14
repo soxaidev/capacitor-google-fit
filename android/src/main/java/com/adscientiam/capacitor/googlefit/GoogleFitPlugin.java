@@ -159,10 +159,10 @@ public class GoogleFitPlugin extends Plugin {
                         JSObject ret = new JSObject();
                         if (result.getResultCode() == Activity.RESULT_OK) {
                             ret.put("value", "success");
+                            notifyListeners("googleFitAllowed", ret);
                         } else {
                             ret.put("value", "failure");
                         }
-                        notifyListeners("googleFitAllowed", ret);
                     }
                 );
     }
