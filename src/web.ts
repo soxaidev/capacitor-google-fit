@@ -20,7 +20,7 @@ export class GoogleFitWeb extends WebPlugin implements GoogleFitPlugin {
   addListener(
     eventName: 'googleFitAllowed',
     listenerFunc?: ListenerCallback,
-  ): Promise<PluginListenerHandle> & PluginListenerHandle {
+  ): Promise<PluginListenerHandle> {
     throw new Error(`Method not implemented.${eventName}${listenerFunc}`);
   }
   async disableFit(): Promise<void> {

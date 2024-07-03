@@ -3,7 +3,7 @@ import type { AllowedResult, GoogleFitPlugin } from './definitions';
 export declare class GoogleFitWeb extends WebPlugin implements GoogleFitPlugin {
     constructor();
     connectToGoogleFit(): Promise<void>;
-    addListener(eventName: 'googleFitAllowed', listenerFunc?: ListenerCallback): Promise<PluginListenerHandle> & PluginListenerHandle;
+    addListener(eventName: 'googleFitAllowed', listenerFunc?: ListenerCallback): Promise<PluginListenerHandle>;
     disableFit(): Promise<void>;
     logoutGoogleFit(): Promise<void>;
     openGoogleFit(): Promise<void>;
