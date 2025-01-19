@@ -696,8 +696,18 @@ public class GoogleFitPlugin extends Plugin {
             return null;
         }
 
+        long nowTime = System.currentTimeMillis();
+
         long startTime = dateToTimestamp(call.getString("startTime"));
         long endTime = dateToTimestamp(call.getString("endTime"));
+
+        // startTimeかendTimeが未来の場合は処理を終了
+        if (startTime > nowTime || endTime > nowTime) {
+            Log.d(TAG, "未来が設定されているため、エラーを返します。");
+            call.reject("startTime or endTime is future time");
+            return null;
+        }
+
         int stepCount = call.getInt("value");
 
         DataSource stepCountDataSource = new DataSource.Builder()
