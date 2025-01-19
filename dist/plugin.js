@@ -60,6 +60,10 @@ var capacitorGoogleFit = (function (exports, core) {
         async getHistoryActivityPerDay() {
             throw new Error('Method not implemented.');
         }
+        // health connect
+        async checkAvailabilityHealthConnect() {
+            throw new Error('Method not implemented.');
+        }
     }
 
     var web = /*#__PURE__*/Object.freeze({

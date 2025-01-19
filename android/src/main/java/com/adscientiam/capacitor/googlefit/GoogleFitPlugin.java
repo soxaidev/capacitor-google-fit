@@ -13,6 +13,7 @@ import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.health.connect.client.HealthConnectClient;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.NativePlugin;
 import com.getcapacitor.Plugin;
@@ -57,8 +58,33 @@ import org.json.JSONObject;
 public class GoogleFitPlugin extends Plugin {
 
     public static final String TAG = "HistoryApi";
+    private Context context;
     static final int GOOGLE_FIT_PERMISSIONS_REQUEST_CODE = 19849;
     static final int RC_SIGN_IN = 1337;
+
+    @PluginMethod
+    public void checkAvailabilityHealthConnect(PluginCall call) {
+        Context context = this.context;
+        int status = HealthConnectClient.getSdkStatus(context);
+
+        String availability = "NotSupported";
+        switch (status) {
+            case HealthConnectClient.SDK_AVAILABLE:
+                availability = "Available";
+                break;
+            case HealthConnectClient.SDK_UNAVAILABLE:
+                availability = "NotSupported";
+                break;
+            case HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED:
+                availability = "NotInstalled";
+                break;
+            default:
+                throw new RuntimeException("Invalid sdk status: " + status);
+        }
+        JSObject res = new JSObject();
+        res.put("availability", availability);
+        call.resolve(res);
+    }
 
     private FitnessOptions getFitnessSignInOptions() {
         // FitnessOptions instance, declaring the Fit API data types
@@ -126,6 +152,9 @@ public class GoogleFitPlugin extends Plugin {
 
     @Override
     public void load() {
+        super.load();
+        this.context = bridge.getContext();
+
         activityResultLauncher =
             getActivity()
                 .registerForActivityResult(

@@ -65,4 +65,12 @@ export class GoogleFitWeb extends WebPlugin implements GoogleFitPlugin {
   async getHistoryActivityPerDay(): Promise<any> {
     throw new Error('Method not implemented.');
   }
+
+  // health connect
+  async checkAvailabilityHealthConnect(): Promise<{
+    value: 'Available' | 'NotSupported' | 'NotInstalled';
+  }> {
+    throw new Error('Method not implemented.');
+  }
+  // health connect
 }

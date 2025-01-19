@@ -85,6 +85,21 @@ export interface GoogleFitPlugin {
     eventName: 'googleFitAllowed',
     listenerFunc: (info: GoogleFitPermissionData) => void,
   ): Promise<PluginListenerHandle>;
+
+  /**
+   * ! Health Connect
+   */
+
+  /**
+   * Check availability of Health Connect
+   */
+  checkAvailabilityHealthConnect(): Promise<{
+    value: 'Available' | 'NotSupported' | 'NotInstalled';
+  }>;
+
+  /**
+   * ! Health Connect
+   */
 }
 
 export interface PermissionData {

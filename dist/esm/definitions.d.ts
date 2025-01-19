@@ -75,6 +75,15 @@ export interface GoogleFitPlugin {
      */
     getHistoryActivityPerDay(call: QueryInput): Promise<ActivityContainer>;
     addListener(eventName: 'googleFitAllowed', listenerFunc: (info: GoogleFitPermissionData) => void): Promise<PluginListenerHandle>;
+    /**
+     * ! Health Connect
+     */
+    /**
+     * Check availability of Health Connect
+     */
+    checkAvailabilityHealthConnect(): Promise<{
+        value: 'Available' | 'NotSupported' | 'NotInstalled';
+    }>;
 }
 export interface PermissionData {
     allowed: boolean;

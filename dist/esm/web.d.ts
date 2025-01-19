@@ -28,4 +28,7 @@ export declare class GoogleFitWeb extends WebPlugin implements GoogleFitPlugin {
     getHistory(): Promise<any>;
     getHistoryActivity(): Promise<any>;
     getHistoryActivityPerDay(): Promise<any>;
+    checkAvailabilityHealthConnect(): Promise<{
+        value: 'Available' | 'NotSupported' | 'NotInstalled';
+    }>;
 }

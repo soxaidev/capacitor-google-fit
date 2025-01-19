@@ -54,5 +54,9 @@ export class GoogleFitWeb extends WebPlugin {
     async getHistoryActivityPerDay() {
         throw new Error('Method not implemented.');
     }
+    // health connect
+    async checkAvailabilityHealthConnect() {
+        throw new Error('Method not implemented.');
+    }
 }
 //# sourceMappingURL=web.js.map
